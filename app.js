@@ -81,18 +81,30 @@ async function forzarRaspadoEnLaNube() {
 }
 
 // BOTÓN 2: SÓLO BUSCA LOS DATOS EXISTENTES
+// BOTÓN 2: BUSCA LOS DATOS DIRECTO DESDE LA API DE GITHUB (SOLUCIÓN DEFINITIVA)
 async function buscarDatosExistentes(idEquipo) {
     const cuerpoTabla = document.getElementById('cuerpo-tabla');
     const mensajeError = document.getElementById('mensaje-error');
     
+    // Aquí recuperamos el token que el usuario ya ingresó en el prompt
+    const GITHUB_TOKEN = localStorage.getItem('mi_token_github');
+    if (!GITHUB_TOKEN) {
+        alert("Por favor, introduce tu token de GitHub primero.");
+        return;
+    }
+
     try {
-        const timestampUnico = new Date().getTime();
-        // Usamos una ruta relativa limpia para evitar bloqueos de carpetas
-        const respuesta = await fetch(`./${idEquipo}.json?nocache=${timestampUnico}`);
+        // Solicitud directa a la API, saltándonos el caché de GitHub Pages
+        const respuesta = await fetch(`https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/${idEquipo}.json`, {
+            headers: {
+                "Authorization": `token ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github.v3.raw"
+            }
+        });
         
         if (!respuesta.ok) {
             cuerpoTabla.innerHTML = '';
-            mensajeError.innerText = `No se encontraron datos listos para el ID ${idEquipo}. Si ya despertaste al robot, espera unos segundos más y vuelve a presionar el botón verde.`;
+            mensajeError.innerText = `No encontré el archivo ${idEquipo}.json en el repositorio. Asegúrate de haber presionado el botón rojo primero.`;
             mensajeError.style.backgroundColor = "#2a1a1f";
             mensajeError.style.color = "#ef4444";
             mensajeError.classList.remove('hidden');
@@ -113,11 +125,11 @@ async function buscarDatosExistentes(idEquipo) {
         });
         
     } catch (error) {
+        console.error("Error al leer de la API:", error);
         cuerpoTabla.innerHTML = '';
         mensajeError.classList.remove('hidden');
     }
 }
-
 function cambiarEquipo() {
     const idSeleccionado = document.getElementById('selector-equipo').value;
     if(idSeleccionado) buscarDatosExistentes(idSeleccionado);
