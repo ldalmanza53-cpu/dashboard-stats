@@ -12,6 +12,8 @@ on:
 jobs:
   raspado:
     runs-on: ubuntu-latest
+    # ESTA ES LA LÍNEA CRUCIAL QUE CORRIGE EL ERROR 403:
+    permissions: write-all
 
     steps:
     - name: Descargar el codigo del repositorio
