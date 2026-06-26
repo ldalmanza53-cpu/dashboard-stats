@@ -49,23 +49,22 @@ def extraer_y_guardar_sofascore(id_equipo):
 
         # ... (tu código anterior)
         if resultados_finales:
-    ruta_repo = os.path.dirname(os.path.abspath(__file__))
+            ruta_repo = os.path.dirname(os.path.abspath(__file__))
 
-    archivo_json = os.path.join(
-        ruta_repo,
-        f"{id_equipo}.json"
-    )
+            archivo_json = os.path.join(
+                ruta_repo,
+                f"{id_equipo}.json"
+            )
 
-    with open(archivo_json, "w", encoding="utf-8") as f:
-        json.dump(
-            resultados_finales,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
+            with open(archivo_json, "w", encoding="utf-8") as f:
+                json.dump(
+                    resultados_finales,
+                    f,
+                    ensure_ascii=False,
+                    indent=4
+                )
 
-    print(f"Archivo guardado: {archivo_json}")
-# ...
+            print(f"[+] Archivo guardado en: {archivo_json}")
         browser.close()
 
 if __name__ == '__main__':
