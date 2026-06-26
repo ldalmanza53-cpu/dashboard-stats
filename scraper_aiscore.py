@@ -57,26 +57,37 @@ def extraer_y_guardar_sofascore(id_equipo):
         print("Extrayendo partidos...")
         print("Titulo:", page.title())
 
-        # AQUÍ ESTÁ LA CORRECCIÓN: Buscamos globalmente de nuevo
+        # HACKEO DEFINITIVO: Extraer de la URL si el texto falla
         datos = page.evaluate("""
         () => {
             const resultados = [];
-            
-            // Volvemos a la búsqueda global infalible
             const enlaces = Array.from(document.querySelectorAll("a[href]"));
 
             enlaces.forEach(a => {
                 const url = a.href || "";
 
-                // Atrapamos "/match/" o "/partido/" por si cambian el idioma
-                if (url.includes("/match/") || url.includes("/partido/")) {
+                if ((url.includes("/match/") || url.includes("/partido/") || url.includes("/evento/")) && !url.includes("/campeonato/")) {
                     
-                    // Extraemos texto profundo y limpiamos saltos de línea
                     let texto = a.textContent || a.innerText || "";
                     texto = texto.replace(/\\s+/g, " ").trim();
                     
-                    if (texto === "") {
-                        texto = "⚽ Detalles del encuentro";
+                    // Si el texto está vacío, extraemos los equipos directo de la URL
+                    if (texto === "" || texto.length < 4) {
+                        try {
+                            const partes = url.split("/");
+                            // La penúltima parte de la URL siempre es "equipo1-equipo2"
+                            const slug = partes[partes.length - 2]; 
+                            
+                            if (slug && slug.includes("-")) {
+                                // Convertimos "bolivia-venezuela" en "Bolivia vs Venezuela"
+                                const formateado = slug.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" vs ");
+                                texto = "⚽ " + formateado;
+                            } else {
+                                texto = "⚽ Detalles del encuentro";
+                            }
+                        } catch(e) {
+                            texto = "⚽ Detalles del encuentro";
+                        }
                     }
 
                     resultados.push({
