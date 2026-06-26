@@ -1,0 +1,42 @@
+name: Ejecutar Scraper Deportivo Dinamico
+
+on:
+  # Permite activar el script manualmente desde el celular escribiendo el ID
+  workflow_dispatch:
+    inputs:
+      id_equipo:
+        description: 'ID del equipo de Sofascore'
+        required: true
+        default: '4820'
+
+jobs:
+  raspado:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar el codigo del repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar Python en el servidor
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Instalar dependencias necesarias
+      run: |
+        python -m pip install --upgrade pip
+        pip install playwright
+        playwright install chromium
+
+    - name: Ejecutar el Scraper de Python
+      run: |
+        # Ejecuta el script pasándole el ID que escribas en el celular
+        python scraper_aiscore.py ${{ github.event.inputs.id_equipo }}
+
+    - name: Guardar cambios y actualizar la web automaticamente
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        # Solo hace commit si el JSON cambió o es un equipo nuevo
+        git diff --quiet && git diff --staged --quiet || (git commit -m "update: datos del equipo ${{ github.event.inputs.id_equipo }}" && git push)
