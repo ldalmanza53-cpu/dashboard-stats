@@ -3,7 +3,12 @@ async function cargarPartidosPorId(idEquipo) {
     const mensajeError = document.getElementById('mensaje-error');
     
     try {
-        const respuesta = await fetch(`${idEquipo}.json`);
+        // Truco definitivo: Rompemos la caché agregando un número único de tiempo al final
+        const timestampUnico = new Date().getTime();
+        
+        // Forzamos la lectura exacta del archivo JSON correspondiente
+        const respuesta = await fetch(`./${idEquipo}.json?nocache=${timestampUnico}`);
+        
         if (!respuesta.ok) throw new Error('Archivo no encontrado');
         
         const partidos = await respuesta.json();
@@ -22,6 +27,7 @@ async function cargarPartidosPorId(idEquipo) {
     } catch (error) {
         cuerpoTabla.innerHTML = '';
         mensajeError.classList.remove('hidden');
+        console.error("Detalle del error al cargar el JSON:", error);
     }
 }
 
