@@ -7,30 +7,31 @@ ID_EQUIPO = int(sys.argv[1]) if len(sys.argv) > 1 else 4820
 
 
 def extraer_y_guardar_sofascore(id_equipo):
-    print(f"Iniciando raspado para el ID: {id_equipo}...")
+
+    print(f"Iniciando raspado para ID {id_equipo}")
 
     with sync_playwright() as p:
 
         browser = p.chromium.launch(
             headless=True,
             args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox"
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled"
             ]
         )
 
         context = browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/137.0.0.0 Safari/537.36"
-            ),
             viewport={
                 "width": 1366,
                 "height": 768
             },
             locale="es-ES",
-            timezone_id="America/Bogota"
+            timezone_id="America/Bogota",
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/137.0.0.0 Safari/537.36"
+            )
         )
 
         page = context.new_page()
@@ -40,125 +41,128 @@ def extraer_y_guardar_sofascore(id_equipo):
             "Referer": "https://www.google.com/"
         })
 
-        url_perfil = (
+        url = (
             f"https://www.sofascore.com/es/equipo/"
             f"futbol/colombia/{id_equipo}"
         )
 
-        print("Abriendo página...")
+        print("Abriendo:", url)
 
         page.goto(
-            url_perfil,
+            url,
             wait_until="domcontentloaded",
-            timeout=60000
+            timeout=90000
         )
 
-        print("Esperando carga...")
+        page.wait_for_timeout(10000)
 
-        page.wait_for_timeout(12000)
+        print("Haciendo scroll...")
+
+        for _ in range(6):
+            page.mouse.wheel(0, 2500)
+            page.wait_for_timeout(2500)
+
+        print("Esperando carga final...")
+
+        page.wait_for_timeout(8000)
 
         page.screenshot(path="debug.png")
 
-        print("Captura guardada")
-        print("URL actual:", page.url)
+        with open(
+            "debug.html",
+            "w",
+            encoding="utf-8"
+        ) as f:
+            f.write(page.content())
+
+        print("Capturas guardadas")
+
+        print("URL:", page.url)
 
         try:
             print("Título:", page.title())
         except:
-            print("No se pudo obtener el título")
+            pass
 
-        page.wait_for_selector("body", timeout=15000)
+        datos = page.evaluate("""
+() => {
 
-        print("Extrayendo partidos...")
+const resultados=[];
 
-        datos_partidos = page.evaluate("""() => {
+document.querySelectorAll("a").forEach(a=>{
 
-            const resultados = [];
+const url=a.href||"";
 
-            const contenedor =
-                document.querySelector("main") ||
-                document.querySelector("#__next") ||
-                document.body;
+if(
+url.includes("/match/")
+||
+url.includes("/evento/")
+){
 
-            const enlaces =
-                Array.from(
-                    contenedor.querySelectorAll("a[href]")
-                );
+const texto=
+(
+a.innerText
+||
+a.textContent
+||
+"Partido"
+)
+.replace(/\\n/g," ")
+.trim();
 
-            enlaces.forEach(a => {
+resultados.push({
+info:texto,
+url:url
+});
 
-                const url = a.href || "";
+}
 
-                if (
-                    url.includes("/match/")
-                ) {
+});
 
-                    const texto =
-                        (
-                            a.innerText ||
-                            a.textContent ||
-                            "Partido"
-                        )
-                        .replace(/\\n/g, " ")
-                        .trim();
+return resultados;
 
-                    resultados.push({
-                        info: texto,
-                        url: url
-                    });
-                }
+}
+""")
 
-            });
+        print("Links encontrados:", len(datos))
 
-            return resultados;
+        unicos = []
+        vistas = set()
 
-        }""")
+        for x in datos:
 
-        print("Encontrados:", len(datos_partidos))
+            if x["url"] not in vistas:
 
-        if datos_partidos:
-            print(datos_partidos[:3])
+                vistas.add(x["url"])
+                unicos.append(x)
 
-        partidos_unicos = []
-        urls_vistas = set()
+        resultados = unicos[:15]
 
-        for item in datos_partidos:
+        print("Únicos:", len(resultados))
 
-            if item["url"] not in urls_vistas:
+        ruta = os.path.dirname(
+            os.path.abspath(__file__)
+        )
 
-                urls_vistas.add(item["url"])
-                partidos_unicos.append(item)
+        archivo = os.path.join(
+            ruta,
+            f"{id_equipo}.json"
+        )
 
-        resultados_finales = partidos_unicos[:10]
+        with open(
+            archivo,
+            "w",
+            encoding="utf-8"
+        ) as f:
 
-        if resultados_finales:
-
-            ruta_repo = os.path.dirname(
-                os.path.abspath(__file__)
+            json.dump(
+                resultados,
+                f,
+                indent=4,
+                ensure_ascii=False
             )
 
-            archivo_json = os.path.join(
-                ruta_repo,
-                f"{id_equipo}.json"
-            )
-
-            with open(
-                archivo_json,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-                json.dump(
-                    resultados_finales,
-                    f,
-                    ensure_ascii=False,
-                    indent=4
-                )
-
-            print(f"[+] Archivo guardado en: {archivo_json}")
-
-        else:
-            print("No se encontraron partidos")
+        print("JSON creado:", archivo)
 
         context.close()
         browser.close()
