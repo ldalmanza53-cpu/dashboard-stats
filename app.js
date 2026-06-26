@@ -30,7 +30,6 @@ async function forzarRaspadoEnLaNube() {
         return;
     }
 
-    // Buscamos el botón de despertar (el primero del panel)
     const botonRobot = document.querySelector(".control-panel button:nth-of-type(1)");
     const mensajeError = document.getElementById('mensaje-error');
     
@@ -54,13 +53,12 @@ async function forzarRaspadoEnLaNube() {
         });
 
         if (respuesta.status === 204) {
-            botonRobot.innerText = "✅ ¡Robot activado en la nube!";
-            mensajeError.innerText = `El robot está raspando el ID ${idEquipo}. Espera unos 45-60 segundos y luego presiona el botón verde 'Ver / Refrescar Tabla'.`;
+            botonRobot.innerText = "✅ ¡Robot en camino!";
+            mensajeError.innerText = `El robot está trabajando en el ID ${idEquipo}. Espera 45 segundos y luego presiona el botón verde 'Ver / Refrescar Tabla'.`;
             mensajeError.style.backgroundColor = "#1e293b";
             mensajeError.style.color = "#38bdf8";
             mensajeError.classList.remove('hidden');
             
-            // Restauramos el botón después de 5 segundos
             setTimeout(() => {
                 botonRobot.innerText = "⚡ Despertar Robot";
                 botonRobot.disabled = false;
@@ -82,18 +80,19 @@ async function forzarRaspadoEnLaNube() {
     }
 }
 
-// BOTÓN 2: SÓLO BUSCA LOS DATOS LOCALES EXILESTENTES
+// BOTÓN 2: SÓLO BUSCA LOS DATOS EXISTENTES
 async function buscarDatosExistentes(idEquipo) {
     const cuerpoTabla = document.getElementById('cuerpo-tabla');
     const mensajeError = document.getElementById('mensaje-error');
     
     try {
         const timestampUnico = new Date().getTime();
+        // Usamos una ruta relativa limpia para evitar bloqueos de carpetas
         const respuesta = await fetch(`./${idEquipo}.json?nocache=${timestampUnico}`);
         
         if (!respuesta.ok) {
             cuerpoTabla.innerHTML = '';
-            mensajeError.innerText = `No se encontraron datos listos en internet para el ID ${idEquipo}. Si ya despertaste al robot, espera unos segundos más y vuelve a presionar el botón verde. Si es un ID nuevo, presiona primero el botón rojo.`;
+            mensajeError.innerText = `No se encontraron datos listos para el ID ${idEquipo}. Si ya despertaste al robot, espera unos segundos más y vuelve a presionar el botón verde.`;
             mensajeError.style.backgroundColor = "#2a1a1f";
             mensajeError.style.color = "#ef4444";
             mensajeError.classList.remove('hidden');
