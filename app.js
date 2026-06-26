@@ -85,33 +85,21 @@ async function forzarRaspadoEnLaNube() {
 async function buscarDatosExistentes(idEquipo) {
     const cuerpoTabla = document.getElementById('cuerpo-tabla');
     const mensajeError = document.getElementById('mensaje-error');
-    
-    // Aquí recuperamos el token que el usuario ya ingresó en el prompt
     const GITHUB_TOKEN = localStorage.getItem('mi_token_github');
-    if (!GITHUB_TOKEN) {
-        alert("Por favor, introduce tu token de GitHub primero.");
-        return;
-    }
 
     try {
-        // Solicitud directa a la API, saltándonos el caché de GitHub Pages
         const respuesta = await fetch(`https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/${idEquipo}.json`, {
-            headers: {
-                "Authorization": `token ${GITHUB_TOKEN}`,
-                "Accept": "application/vnd.github.v3.raw"
-            }
+            headers: { "Authorization": `token ${GITHUB_TOKEN}` }
         });
         
-        if (!respuesta.ok) {
-            cuerpoTabla.innerHTML = '';
-            mensajeError.innerText = `No encontré el archivo ${idEquipo}.json en el repositorio. Asegúrate de haber presionado el botón rojo primero.`;
-            mensajeError.style.backgroundColor = "#2a1a1f";
-            mensajeError.style.color = "#ef4444";
-            mensajeError.classList.remove('hidden');
-            return;
-        }
+        const data = await respuesta.json();
         
-        const partidos = await respuesta.json();
+        // La API de GitHub nos envía el contenido en 'data.content' codificado en Base64
+        // Usamos atob() para decodificarlo y decodeURIComponent para manejar caracteres especiales
+        const contenidoBase64 = data.content.replace(/\n/g, ''); 
+        const jsonString = decodeURIComponent(escape(atob(contenidoBase64)));
+        const partidos = JSON.parse(jsonString);
+        
         cuerpoTabla.innerHTML = '';
         mensajeError.classList.add('hidden');
 
@@ -125,11 +113,12 @@ async function buscarDatosExistentes(idEquipo) {
         });
         
     } catch (error) {
-        console.error("Error al leer de la API:", error);
-        cuerpoTabla.innerHTML = '';
+        console.error("Error al decodificar:", error);
+        mensajeError.innerText = "Error al procesar el archivo. Asegúrate de que el robot haya terminado y el archivo esté en la raíz.";
         mensajeError.classList.remove('hidden');
     }
 }
+
 function cambiarEquipo() {
     const idSeleccionado = document.getElementById('selector-equipo').value;
     if(idSeleccionado) buscarDatosExistentes(idSeleccionado);
