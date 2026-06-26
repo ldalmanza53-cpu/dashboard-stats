@@ -1,103 +1,82 @@
 name: Ejecutar Scraper Deportivo Dinamico
 
 on:
-workflow_dispatch:
-inputs:
-id_equipo:
-description: "ID del equipo de Sofascore"
-required: true
-default: "4820"
+  workflow_dispatch:
+    inputs:
+      id_equipo:
+        description: "ID del equipo de Sofascore"
+        required: true
+        default: "4820"
 
 jobs:
-raspado:
-  runs-on: ubuntu-latest
+  raspado:
+    runs-on: ubuntu-latest
 
-  permissions:
-    contents: write
+    permissions:
+      contents: write
 
-  steps:
+    steps:
+      - name: Descargar el codigo del repositorio
+        uses: actions/checkout@v4
 
-- name: Descargar el codigo del repositorio
-  uses: actions/checkout@v4
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install chromium
 
-- name: Configurar Python
-  uses: actions/setup-python@v5
-  with:
-    python-version: "3.11"
+      - name: Ejecutar scraper
+        run: |
+          python scraper_aiscore.py "${{ github.event.inputs.id_equipo }}"
 
+      - name: Subir archivos de depuracion
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug
+          path: |
+            debug.png
+            debug.html
 
-- name: Instalar dependencias
-  run: |
-    python -m pip install --upgrade pip
-    pip install playwright
-    playwright install chromium
+      - name: Verificar si se genero JSON
+        run: |
+          echo "Directorio:"
+          pwd
 
+          echo ""
+          echo "Archivos:"
+          ls -lah
 
-- name: Ejecutar scraper
-  run: |
-    python scraper_aiscore.py "${{ github.event.inputs.id_equipo }}"
+          ARCHIVO="${{ github.event.inputs.id_equipo }}.json"
 
+          echo ""
+          echo "Buscando $ARCHIVO"
 
-- name: Subir archivos de depuracion
-  if: always()
-  uses: actions/upload-artifact@v4
-  with:
-    name: debug
-    path: |
-      debug.png
-      debug.html
+          if [ -f "$ARCHIVO" ]; then
+            echo "JSON encontrado"
+            echo ""
+            echo "Contenido:"
+            cat "$ARCHIVO"
+          else
+            echo "ERROR: no se encontro $ARCHIVO"
+            exit 1
+          fi
 
+      - name: Guardar cambios
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
 
-- name: Verificar si se genero JSON
-  run: |
+          git add "${{ github.event.inputs.id_equipo }}.json"
 
-    echo "Directorio:"
-    pwd
-
-    echo ""
-    echo "Archivos:"
-    ls -lah
-
-    ARCHIVO="${{ github.event.inputs.id_equipo }}.json"
-
-    echo ""
-    echo "Buscando $ARCHIVO"
-
-    if [ -f "$ARCHIVO" ]; then
-
-      echo "JSON encontrado"
-
-      echo ""
-      echo "Contenido:"
-
-      cat "$ARCHIVO"
-
-    else
-
-      echo "ERROR: no se encontro $ARCHIVO"
-
-      exit 1
-
-    fi
-
-
-- name: Guardar cambios
-  run: |
-
-    git config user.email "action@github.com"
-    git config user.name "GitHub Action"
-
-    git add "${{ github.event.inputs.id_equipo }}.json"
-
-    if git diff --cached --quiet; then
-
-      echo "Sin cambios"
-
-    else
-
-      git commit -m "update: equipo ${{ github.event.inputs.id_equipo }}"
-      git push
-
-    fi
-```
+          if git diff --cached --quiet; then
+            echo "Sin cambios"
+          else
+            git commit -m "update: equipo ${{ github.event.inputs.id_equipo }}"
+            git push
+          fi
