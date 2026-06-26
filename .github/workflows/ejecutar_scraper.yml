@@ -30,7 +30,10 @@ jobs:
 
     - name: Ejecutar el Scraper de Python
       run: |
-        python scraper_aiscore.py ${{ github.event.inputs.id_equipo }}
+        # Usamos el punto para asegurar que corra en el directorio actual
+        python ./scraper_aiscore.py ${{ github.event.inputs.id_equipo }}
+      # Añadimos esto para asegurar que el comando corre en la raíz
+      working-directory: .
 
     - name: Guardar cambios y actualizar la web automaticamente
       env:
