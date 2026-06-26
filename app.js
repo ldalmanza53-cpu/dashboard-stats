@@ -4,7 +4,7 @@
 const USUARIO = "ldalmanza53-cpu";
 const REPOSITORIO = "dashboard-stats";
 
-// El token ya no se escribe aquí de forma fija por seguridad
+// Recupera o solicita el token de forma segura
 function obtenerTokenSeguro() {
     let token = localStorage.getItem('mi_token_github');
     if (!token) {
@@ -16,7 +16,14 @@ function obtenerTokenSeguro() {
     return token;
 }
 
-async function dispararRobotEnLaNube(idEquipo) {
+// ESTA FUNCIÓN AHORA SÓLO SE EJECUTA CUANDO PRESIONAS EL BOTÓN
+async function forzarRaspadoEnLaNube() {
+    const idEquipo = document.getElementById('selector-equipo').value;
+    if (!idEquipo) {
+        alert("Por favor, escribe un ID de equipo primero.");
+        return;
+    }
+
     const GITHUB_TOKEN = obtenerTokenSeguro();
     if (!GITHUB_TOKEN) {
         alert("Se necesita el token para activar el robot.");
@@ -51,25 +58,25 @@ async function dispararRobotEnLaNube(idEquipo) {
             setTimeout(() => {
                 boton.innerText = "Cargar Datos";
                 boton.disabled = false;
-                cargarPartidosPorId(idEquipo);
+                buscarDatosExistentes(idEquipo);
             }, 45000);
 
         } else {
-            throw new Error("No se pudo iniciar el robot. Verifica tu Token.");
+            throw new Error("No se pudo iniciar el robot.");
         }
 
     } catch (error) {
         console.error(error);
         boton.innerText = "Cargar Datos";
         boton.disabled = false;
-        mensajeError.innerText = "Error de autenticación. Es posible que debas actualizar tu Token.";
+        mensajeError.innerText = "Error al conectar con GitHub Actions. Verifica tu Token.";
         mensajeError.classList.remove('hidden');
-        // Si falló, borramos el token guardado para que te lo vuelva a pedir la próxima vez
         localStorage.removeItem('mi_token_github');
     }
 }
 
-async function cargarPartidosPorId(idEquipo) {
+// ESTA FUNCIÓN SÓLO BUSCA, NUNCA ENCIENDE EL ROBOT SOLA
+async function buscarDatosExistentes(idEquipo) {
     const cuerpoTabla = document.getElementById('cuerpo-tabla');
     const mensajeError = document.getElementById('mensaje-error');
     
@@ -78,7 +85,10 @@ async function cargarPartidosPorId(idEquipo) {
         const respuesta = await fetch(`./${idEquipo}.json?nocache=${timestampUnico}`);
         
         if (!respuesta.ok) {
-            dispararRobotEnLaNube(idEquipo);
+            // Si no existe, dejamos la tabla limpia y mostramos el error visual sin encender el robot
+            cuerpoTabla.innerHTML = '';
+            mensajeError.innerText = `No hay datos locales para el ID ${idEquipo}. Si quieres analizarlos, presiona el botón 'Cargar Datos' para activar el robot.`;
+            mensajeError.classList.remove('hidden');
             return;
         }
         
@@ -101,9 +111,10 @@ async function cargarPartidosPorId(idEquipo) {
     }
 }
 
+// Al cambiar el ID en el cuadro, solo busca si ya existe el archivo en el repositorio
 function cambiarEquipo() {
     const idSeleccionado = document.getElementById('selector-equipo').value;
-    if(idSeleccionado) cargarPartidosPorId(idSeleccionado);
+    if(idSeleccionado) buscarDatosExistentes(idSeleccionado);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
