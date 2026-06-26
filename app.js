@@ -16,7 +16,7 @@ function obtenerTokenSeguro() {
     return token;
 }
 
-// ESTA FUNCIÓN AHORA SÓLO SE EJECUTA CUANDO PRESIONAS EL BOTÓN
+// BOTÓN 1: SÓLO ENCIENDE EL ROBOT EN LA NUBE
 async function forzarRaspadoEnLaNube() {
     const idEquipo = document.getElementById('selector-equipo').value;
     if (!idEquipo) {
@@ -30,11 +30,12 @@ async function forzarRaspadoEnLaNube() {
         return;
     }
 
-    const boton = document.querySelector(".control-panel button");
+    // Buscamos el botón de despertar (el primero del panel)
+    const botonRobot = document.querySelector(".control-panel button:nth-of-type(1)");
     const mensajeError = document.getElementById('mensaje-error');
     
-    boton.innerText = "⚡ Despertando Robot...";
-    boton.disabled = true;
+    botonRobot.innerText = "🚀 Enviando orden...";
+    botonRobot.disabled = true;
 
     try {
         const respuesta = await fetch(`https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/actions/workflows/ejecutar_scraper.yml/dispatches`, {
@@ -53,13 +54,17 @@ async function forzarRaspadoEnLaNube() {
         });
 
         if (respuesta.status === 204) {
-            boton.innerText = "⏳ Raspando datos (Espera 45s)...";
+            botonRobot.innerText = "✅ ¡Robot activado en la nube!";
+            mensajeError.innerText = `El robot está raspando el ID ${idEquipo}. Espera unos 45-60 segundos y luego presiona el botón verde 'Ver / Refrescar Tabla'.`;
+            mensajeError.style.backgroundColor = "#1e293b";
+            mensajeError.style.color = "#38bdf8";
+            mensajeError.classList.remove('hidden');
             
+            // Restauramos el botón después de 5 segundos
             setTimeout(() => {
-                boton.innerText = "Cargar Datos";
-                boton.disabled = false;
-                buscarDatosExistentes(idEquipo);
-            }, 45000);
+                botonRobot.innerText = "⚡ Despertar Robot";
+                botonRobot.disabled = false;
+            }, 5000);
 
         } else {
             throw new Error("No se pudo iniciar el robot.");
@@ -67,15 +72,17 @@ async function forzarRaspadoEnLaNube() {
 
     } catch (error) {
         console.error(error);
-        boton.innerText = "Cargar Datos";
-        boton.disabled = false;
+        botonRobot.innerText = "⚡ Despertar Robot";
+        botonRobot.disabled = false;
         mensajeError.innerText = "Error al conectar con GitHub Actions. Verifica tu Token.";
+        mensajeError.style.backgroundColor = "#2a1a1f";
+        mensajeError.style.color = "#ef4444";
         mensajeError.classList.remove('hidden');
         localStorage.removeItem('mi_token_github');
     }
 }
 
-// ESTA FUNCIÓN SÓLO BUSCA, NUNCA ENCIENDE EL ROBOT SOLA
+// BOTÓN 2: SÓLO BUSCA LOS DATOS LOCALES EXILESTENTES
 async function buscarDatosExistentes(idEquipo) {
     const cuerpoTabla = document.getElementById('cuerpo-tabla');
     const mensajeError = document.getElementById('mensaje-error');
@@ -85,9 +92,10 @@ async function buscarDatosExistentes(idEquipo) {
         const respuesta = await fetch(`./${idEquipo}.json?nocache=${timestampUnico}`);
         
         if (!respuesta.ok) {
-            // Si no existe, dejamos la tabla limpia y mostramos el error visual sin encender el robot
             cuerpoTabla.innerHTML = '';
-            mensajeError.innerText = `No hay datos locales para el ID ${idEquipo}. Si quieres analizarlos, presiona el botón 'Cargar Datos' para activar el robot.`;
+            mensajeError.innerText = `No se encontraron datos listos en internet para el ID ${idEquipo}. Si ya despertaste al robot, espera unos segundos más y vuelve a presionar el botón verde. Si es un ID nuevo, presiona primero el botón rojo.`;
+            mensajeError.style.backgroundColor = "#2a1a1f";
+            mensajeError.style.color = "#ef4444";
             mensajeError.classList.remove('hidden');
             return;
         }
@@ -111,7 +119,6 @@ async function buscarDatosExistentes(idEquipo) {
     }
 }
 
-// Al cambiar el ID en el cuadro, solo busca si ya existe el archivo en el repositorio
 function cambiarEquipo() {
     const idSeleccionado = document.getElementById('selector-equipo').value;
     if(idSeleccionado) buscarDatosExistentes(idSeleccionado);
