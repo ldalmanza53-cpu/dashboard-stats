@@ -10,14 +10,12 @@ default: "4820"
 
 jobs:
 raspado:
+  runs-on: ubuntu-latest
 
-```
-runs-on: ubuntu-latest
+  permissions:
+    contents: write
 
-permissions:
-  contents: write
-
-steps:
+  steps:
 
 - name: Descargar el codigo del repositorio
   uses: actions/checkout@v4
