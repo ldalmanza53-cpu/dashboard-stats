@@ -1,7 +1,6 @@
 name: Ejecutar Scraper Deportivo Dinamico
 
 on:
-  # Permite activar el script manualmente desde el celular escribiendo el ID
   workflow_dispatch:
     inputs:
       id_equipo:
@@ -12,7 +11,6 @@ on:
 jobs:
   raspado:
     runs-on: ubuntu-latest
-    # ESTA ES LA LÍNEA CRUCIAL QUE CORRIGE EL ERROR 403:
     permissions: write-all
 
     steps:
@@ -32,13 +30,14 @@ jobs:
 
     - name: Ejecutar el Scraper de Python
       run: |
-        # Ejecuta el script pasándole el ID que escribas en el celular
         python scraper_aiscore.py ${{ github.event.inputs.id_equipo }}
 
     - name: Guardar cambios y actualizar la web automaticamente
+      env:
+        # ESTA JUGADA LE DA EL PERMISO EXPLICITO AL SERVIDOR PARA HACER PUSH
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
-        # Solo hace commit si el JSON cambió o es un equipo nuevo
         git diff --quiet && git diff --staged --quiet || (git commit -m "update: datos del equipo ${{ github.event.inputs.id_equipo }}" && git push)
