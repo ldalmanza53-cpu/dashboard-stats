@@ -109,4 +109,8 @@ if resultados_finales:
 else:
     print("No se encontraron partidos.")
 
-browser.close()    extraer_y_guardar_sofascore(ID_EQUIPO)
+browser.close()
+
+
+if __name__ == '__main__':
+    extraer_y_guardar_sofascore(ID_EQUIPO)
