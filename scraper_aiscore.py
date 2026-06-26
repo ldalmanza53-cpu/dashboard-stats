@@ -78,34 +78,35 @@ datos_partidos = page.evaluate("""() => {
 print("Encontrados:", len(datos_partidos))
 print(datos_partidos[:3])
 
-        partidos_unicos = []
-        urls_vistas = set()
-        for item in datos_partidos:
-            if item['url'] not in urls_vistas:
-                urls_vistas.add(item['url'])
-                partidos_unicos.append(item)
+partidos_unicos = []
+urls_vistas = set()
 
-        resultados_finales = partidos_unicos[:10]
+for item in datos_partidos:
+    if item['url'] not in urls_vistas:
+        urls_vistas.add(item['url'])
+        partidos_unicos.append(item)
 
-        # ... (tu código anterior)
-        if resultados_finales:
-            ruta_repo = os.path.dirname(os.path.abspath(__file__))
+resultados_finales = partidos_unicos[:10]
 
-            archivo_json = os.path.join(
-                ruta_repo,
-                f"{id_equipo}.json"
-            )
+if resultados_finales:
+    ruta_repo = os.path.dirname(os.path.abspath(__file__))
 
-            with open(archivo_json, "w", encoding="utf-8") as f:
-                json.dump(
-                    resultados_finales,
-                    f,
-                    ensure_ascii=False,
-                    indent=4
-                )
+    archivo_json = os.path.join(
+        ruta_repo,
+        f"{id_equipo}.json"
+    )
 
-            print(f"[+] Archivo guardado en: {archivo_json}")
-        browser.close()
+    with open(archivo_json, "w", encoding="utf-8") as f:
+        json.dump(
+            resultados_finales,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
 
-if __name__ == '__main__':
-    extraer_y_guardar_sofascore(ID_EQUIPO)
+    print(f"[+] Archivo guardado en: {archivo_json}")
+
+else:
+    print("No se encontraron partidos.")
+
+browser.close()    extraer_y_guardar_sofascore(ID_EQUIPO)
