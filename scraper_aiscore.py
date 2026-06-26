@@ -27,89 +27,89 @@ def extraer_y_guardar_sofascore(id_equipo):
         page.wait_for_selector("body", timeout=15000)
         print("Extrayendo partidos...")
 
-datos_partidos = page.evaluate("""() => {
-    const resultados = [];
+        datos_partidos = page.evaluate("""() => {
+            const resultados = [];
 
-    const contenedorPrincipal =
-        document.querySelector('main') ||
-        document.querySelector('#__next');
+            const contenedorPrincipal =
+                document.querySelector('main') ||
+                document.querySelector('#__next');
 
-    if (contenedorPrincipal) {
-        const enlaces =
-            Array.from(contenedorPrincipal.querySelectorAll('a'));
+            if (contenedorPrincipal) {
+                const enlaces =
+                    Array.from(contenedorPrincipal.querySelectorAll('a'));
 
-        enlaces.forEach(a => {
-            const url = a.href;
+                enlaces.forEach(a => {
+                    const url = a.href;
 
-            if (
-                url &&
-                (
-                    url.includes('/evento/') ||
-                    url.includes('/match/')
-                ) &&
-                !url.includes('/campeonato/')
-            ) {
-
-                let esGlobal =
-                    a.closest('header') ||
-                    a.closest('aside') ||
-                    a.closest('[class*="Header"]') ||
-                    a.closest('[class*="Sidebar"]');
-
-                if (!esGlobal) {
-                    let texto =
-                        a.innerText
-                        ? a.innerText.replace(/\\n/g,' ').trim()
-                        : "Partido";
-
-                    resultados.push({
-                        info: texto,
-                        url: url
-                    });
-                }
+                    if (
+                        url &&
+                        (
+                            url.includes('/evento/') ||
+                            url.includes('/match/')
+                        ) &&
+                        !url.includes('/campeonato/')
+                    ) {
+        
+                        let esGlobal =
+                            a.closest('header') ||
+                            a.closest('aside') ||
+                            a.closest('[class*="Header"]') ||
+                            a.closest('[class*="Sidebar"]');
+        
+                        if (!esGlobal) {
+                            let texto =
+                                a.innerText
+                                ? a.innerText.replace(/\\n/g,' ').trim()
+                                : "Partido";
+        
+                            resultados.push({
+                                info: texto,
+                                url: url
+                            });
+                        }
+                    }
+                });
             }
-        });
-    }
-
-    return resultados;
-
-}""")
-
-print("Encontrados:", len(datos_partidos))
-print(datos_partidos[:3])
-
-partidos_unicos = []
-urls_vistas = set()
-
-for item in datos_partidos:
-    if item['url'] not in urls_vistas:
-        urls_vistas.add(item['url'])
-        partidos_unicos.append(item)
-
-resultados_finales = partidos_unicos[:10]
-
-if resultados_finales:
-    ruta_repo = os.path.dirname(os.path.abspath(__file__))
-
-    archivo_json = os.path.join(
-        ruta_repo,
-        f"{id_equipo}.json"
-    )
-
-    with open(archivo_json, "w", encoding="utf-8") as f:
-        json.dump(
-            resultados_finales,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-    print(f"[+] Archivo guardado en: {archivo_json}")
-
-else:
-    print("No se encontraron partidos.")
-
-browser.close()
+        
+            return resultados;
+        
+        }""")
+        
+        print("Encontrados:", len(datos_partidos))
+        print(datos_partidos[:3])
+        
+        partidos_unicos = []
+        urls_vistas = set()
+        
+        for item in datos_partidos:
+            if item['url'] not in urls_vistas:
+                urls_vistas.add(item['url'])
+                partidos_unicos.append(item)
+        
+        resultados_finales = partidos_unicos[:10]
+        
+        if resultados_finales:
+            ruta_repo = os.path.dirname(os.path.abspath(__file__))
+        
+            archivo_json = os.path.join(
+                ruta_repo,
+                f"{id_equipo}.json"
+            )
+        
+            with open(archivo_json, "w", encoding="utf-8") as f:
+                json.dump(
+                    resultados_finales,
+                    f,
+                    ensure_ascii=False,
+                    indent=4
+                )
+        
+            print(f"[+] Archivo guardado en: {archivo_json}")
+        
+        else:
+            print("No se encontraron partidos.")
+        
+        browser.close()
 
 
 if __name__ == '__main__':
