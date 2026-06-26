@@ -103,8 +103,12 @@ async function buscarDatosExistentes(idEquipo) {
         mensajeError.classList.add('hidden');
 
         partidos.forEach(partido => {
-            // Protección: Si 'info' o 'url' no existen, usamos valores por defecto
-            const texto = partido.info ? partido.info : "Sin información disponible";
+            // Protección avanzada: si viene vacío o son puros espacios, mostramos alerta
+            let texto = partido.info;
+            if (!texto || texto.trim() === "") {
+                texto = "⚽ Partido detectado (Sin título renderizado)";
+            }
+            
             const enlace = partido.url ? partido.url : "#";
             
             const tr = document.createElement('tr');
