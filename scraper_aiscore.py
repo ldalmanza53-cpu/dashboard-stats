@@ -65,13 +65,15 @@ def extraer_y_guardar_sofascore(id_equipo):
             timeout=90000
         )
 
-        page.wait_for_timeout(12000)
+        page.wait_for_timeout(15000)
+
+        print("Pequeño scroll igual que local")
 
         page.evaluate(
             "window.scrollBy(0,500)"
         )
 
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(2000)
 
         page.screenshot(
             path="debug.png"
@@ -88,6 +90,14 @@ def extraer_y_guardar_sofascore(id_equipo):
             )
 
         print("Extrayendo partidos...")
+
+        print("Titulo:", page.title())
+
+        print(
+            "Body:",
+            page.locator("body")
+            .inner_text()[:1000]
+        )
 
         datos = page.evaluate("""
         () => {
