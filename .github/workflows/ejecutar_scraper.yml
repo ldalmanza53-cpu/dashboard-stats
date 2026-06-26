@@ -1,72 +1,104 @@
 name: Ejecutar Scraper Deportivo Dinamico
 
 on:
-  workflow_dispatch:
-    inputs:
-      id_equipo:
-        description: 'ID del equipo de Sofascore'
-        required: true
-        default: '4820'
+workflow_dispatch:
+inputs:
+id_equipo:
+description: "ID del equipo de Sofascore"
+required: true
+default: "4820"
 
 jobs:
-  raspado:
-    runs-on: ubuntu-latest
+raspado:
 
-    permissions:
-      contents: write
+```
+runs-on: ubuntu-latest
 
-    steps:
-    - name: Descargar el codigo del repositorio
-      uses: actions/checkout@v4
+permissions:
+  contents: write
 
-    - name: Configurar Python en el servidor
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
+steps:
 
-    - name: Instalar dependencias necesarias
-      run: |
-        python -m pip install --upgrade pip
-        pip install playwright
-        playwright install chromium
+- name: Descargar el codigo del repositorio
+  uses: actions/checkout@v4
 
-    - name: Ejecutar el Scraper de Python
-      run: |
-        python scraper_aiscore.py "${{ github.event.inputs.id_equipo }}"
 
-    - name: Subir captura de depuracion
-      uses: actions/upload-artifact@v4
-      with:
-        name: debug-captura
-        path: debug.png
-      
+- name: Configurar Python
+  uses: actions/setup-python@v5
+  with:
+    python-version: "3.11"
 
-    # ← NUEVO (para depuración)
-    - name: Verificar si se generó el JSON
-      run: |
-        echo "Directorio actual:"
-        pwd
 
-        echo "Archivos:"
-        ls -lah
+- name: Instalar dependencias
+  run: |
+    python -m pip install --upgrade pip
+    pip install playwright
+    playwright install chromium
 
-        if ls *.json 1> /dev/null 2>&1; then
-          echo "JSON encontrado"
-        else
-          echo "ERROR: No se generó ningún JSON"
-          exit 1
-        fi
 
-    - name: Guardar cambios y actualizar la web automaticamente
-      run: |
-        git config user.email "action@github.com"
-        git config user.name "GitHub Action"
+- name: Ejecutar scraper
+  run: |
+    python scraper_aiscore.py "${{ github.event.inputs.id_equipo }}"
 
-        git add .
 
-        if git diff --cached --quiet; then
-          echo "No hay cambios para subir"
-        else
-          git commit -m "update: equipo ${{ github.event.inputs.id_equipo }}"
-          git push
-        fi
+- name: Subir archivos de depuracion
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: debug
+    path: |
+      debug.png
+      debug.html
+
+
+- name: Verificar si se genero JSON
+  run: |
+
+    echo "Directorio:"
+    pwd
+
+    echo ""
+    echo "Archivos:"
+    ls -lah
+
+    ARCHIVO="${{ github.event.inputs.id_equipo }}.json"
+
+    echo ""
+    echo "Buscando $ARCHIVO"
+
+    if [ -f "$ARCHIVO" ]; then
+
+      echo "JSON encontrado"
+
+      echo ""
+      echo "Contenido:"
+
+      cat "$ARCHIVO"
+
+    else
+
+      echo "ERROR: no se encontro $ARCHIVO"
+
+      exit 1
+
+    fi
+
+
+- name: Guardar cambios
+  run: |
+
+    git config user.email "action@github.com"
+    git config user.name "GitHub Action"
+
+    git add "${{ github.event.inputs.id_equipo }}.json"
+
+    if git diff --cached --quiet; then
+
+      echo "Sin cambios"
+
+    else
+
+      git commit -m "update: equipo ${{ github.event.inputs.id_equipo }}"
+      git push
+
+    fi
