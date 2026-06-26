@@ -1,6 +1,7 @@
 import requests
 import json
 import sys
+import time
 from bs4 import BeautifulSoup
 
 ID_EQUIPO = int(sys.argv[1]) if len(sys.argv) > 1 else 4820
@@ -11,9 +12,12 @@ def extraer_y_guardar_sofascore(id_equipo):
     # Intentar mediante API de SofaScore (más confiable que Playwright)
     url_api = f"https://api.sofascore.com/api/v1/team/{id_equipo}/events/last/0"
     
+    # Headers más realistas para evitar bloqueos
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json",
+        "Referer": "https://www.sofascore.com/",
+        "Accept-Language": "es-ES,es;q=0.9",
     }
     
     try:
@@ -22,10 +26,10 @@ def extraer_y_guardar_sofascore(id_equipo):
         response.raise_for_status()
         
         data = response.json()
-        print(f"Respuesta API: {json.dumps(data, indent=2)[:500]}...")  # Debug
+        print(f"✅ Respuesta API exitosa")
         
         eventos = data.get("events", [])
-        print(f"Eventos encontrados: {len(eventos)}")
+        print(f"📊 Eventos encontrados: {len(eventos)}")
         
         partidos = []
         for evento in eventos[:10]:  # Top 10
@@ -52,7 +56,7 @@ def extraer_y_guardar_sofascore(id_equipo):
                 })
                 
             except Exception as e:
-                print(f"Error procesando evento: {e}")
+                print(f"⚠️ Error procesando evento: {e}")
                 continue
         
         # Guardar JSON
@@ -65,6 +69,8 @@ def extraer_y_guardar_sofascore(id_equipo):
         for p in partidos:
             print(f"  - {p['info']}")
         
+        return True
+        
     except requests.exceptions.RequestException as e:
         print(f"❌ Error en la solicitud HTTP: {e}")
         
@@ -75,47 +81,74 @@ def extraer_y_guardar_sofascore(id_equipo):
             
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
+                page = browser.new_page(
+                    user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                )
                 
                 url = f"https://www.sofascore.com/es/equipo/futbol/colombia/{id_equipo}"
                 print(f"Abriendo: {url}")
                 
-                page.goto(url, wait_until="load", timeout=90000)
-                page.wait_for_timeout(5000)
-                
-                # Intentar múltiples selectores
-                partidos = page.evaluate("""
-                () => {
-                    const results = [];
+                try:
+                    page.goto(url, wait_until="networkidle", timeout=90000)
+                    time.sleep(3)  # Esperar carga de JS
                     
-                    // Selector 1: Enlaces de partidos
-                    document.querySelectorAll('a[href*="/partido/"], a[href*="/match/"]').forEach(a => {
-                        if (a.textContent.trim()) {
-                            results.push({
-                                info: a.textContent.trim(),
-                                url: a.href
-                            });
-                        }
-                    });
+                    # Extraer partidos usando JavaScript
+                    partidos = page.evaluate("""
+                    () => {
+                        const results = [];
+                        
+                        // Selector 1: Enlaces de partidos
+                        document.querySelectorAll('a[href*="/partido/"], a[href*="/match/"]').forEach(a => {
+                            if (a.textContent.trim()) {
+                                results.push({
+                                    info: a.textContent.trim(),
+                                    url: a.href
+                                });
+                            }
+                        });
+                        
+                        return results.slice(0, 10);
+                    }
+                    """)
                     
-                    return results.slice(0, 10);
-                }
-                """)
-                
-                archivo = f"{id_equipo}.json"
-                with open(archivo, "w", encoding="utf-8") as f:
-                    json.dump(partidos, f, ensure_ascii=False, indent=4)
-                
-                print(f"Guardado con Playwright: {len(partidos)} partidos")
-                browser.close()
-                
-        except Exception as e2:
-            print(f"Plan B también falló: {e2}")
-            # Guardar archivo vacío para evitar que el workflow faille
+                    # Guardar JSON
+                    archivo = f"{id_equipo}.json"
+                    with open(archivo, "w", encoding="utf-8") as f:
+                        json.dump(partidos, f, ensure_ascii=False, indent=4)
+                    
+                    print(f"\n✅ Guardado con Playwright: {len(partidos)} partidos")
+                    
+                    # Captura de pantalla para debugging
+                    page.screenshot(path="debug.png")
+                    html = page.content()
+                    with open("debug.html", "w", encoding="utf-8") as f:
+                        f.write(html)
+                    
+                    page.close()
+                    browser.close()
+                    return len(partidos) > 0
+                    
+                except Exception as e:
+                    print(f"❌ Error con Playwright: {e}")
+                    try:
+                        page.screenshot(path="debug.png")
+                    except:
+                        pass
+                    page.close()
+                    browser.close()
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ Error importando Playwright: {e}")
+            
+            # Plan C: Guardar archivo vacío para evitar que el workflow falle
             archivo = f"{id_equipo}.json"
             with open(archivo, "w", encoding="utf-8") as f:
                 json.dump([], f)
-            print(f"Archivo vacío creado: {archivo}")
+            print(f"⚠️ Archivo vacío creado: {archivo}")
+            return False
 
 if __name__ == "__main__":
-    extraer_y_guardar_sofascore(ID_EQUIPO)
+    success = extraer_y_guardar_sofascore(ID_EQUIPO)
+    if not success:
+        sys.exit(1)
