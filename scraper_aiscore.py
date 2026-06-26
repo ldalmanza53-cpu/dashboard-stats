@@ -47,13 +47,16 @@ def extraer_y_guardar_sofascore(id_equipo):
 
         resultados_finales = partidos_unicos[:10]
 
+        # ... (tu código anterior)
         if resultados_finales:
-            archivo_json = f"{id_equipo}.json"
+            # Obtiene la ruta del directorio donde está corriendo el script (la raíz)
+            ruta_raiz = os.getcwd()
+            archivo_json = os.path.join(ruta_raiz, f"{id_equipo}.json")
+            
             with open(archivo_json, "w", encoding="utf-8") as f:
                 json.dump(resultados_finales, f, ensure_ascii=False, indent=4)
-            print(f"[+] Archivo '{archivo_json}' generado.")
-        else:
-            print("[-] No se extrajeron datos.")
+            print(f"[+] Archivo guardado en: {archivo_json}")
+# ...
         browser.close()
 
 if __name__ == '__main__':
