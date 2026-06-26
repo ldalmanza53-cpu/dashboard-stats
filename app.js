@@ -94,8 +94,7 @@ async function buscarDatosExistentes(idEquipo) {
         
         const data = await respuesta.json();
         
-        // La API de GitHub nos envía el contenido en 'data.content' codificado en Base64
-        // Usamos atob() para decodificarlo y decodeURIComponent para manejar caracteres especiales
+        // Decodificación segura
         const contenidoBase64 = data.content.replace(/\n/g, ''); 
         const jsonString = decodeURIComponent(escape(atob(contenidoBase64)));
         const partidos = JSON.parse(jsonString);
@@ -104,21 +103,24 @@ async function buscarDatosExistentes(idEquipo) {
         mensajeError.classList.add('hidden');
 
         partidos.forEach(partido => {
+            // Protección: Si 'info' o 'url' no existen, usamos valores por defecto
+            const texto = partido.info ? partido.info : "Sin información disponible";
+            const enlace = partido.url ? partido.url : "#";
+            
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${partido.info}</strong></td>
-                <td><a href="${partido.url}" target="_blank" class="btn-analisis">Ver Estadísticas</a></td>
+                <td><strong>${texto}</strong></td>
+                <td><a href="${enlace}" target="_blank" class="btn-analisis">Ver Estadísticas</a></td>
             `;
             cuerpoTabla.appendChild(tr);
         });
         
     } catch (error) {
-        console.error("Error al decodificar:", error);
-        mensajeError.innerText = "Error al procesar el archivo. Asegúrate de que el robot haya terminado y el archivo esté en la raíz.";
+        console.error("Error final:", error);
+        mensajeError.innerText = "Error: El robot no guardó bien los datos o el archivo está corrupto. Verifica la estructura en el archivo JSON.";
         mensajeError.classList.remove('hidden');
     }
 }
-
 function cambiarEquipo() {
     const idSeleccionado = document.getElementById('selector-equipo').value;
     if(idSeleccionado) buscarDatosExistentes(idSeleccionado);
