@@ -14,11 +14,14 @@
 
    <main class="contenedor">
         <section class="control-panel">
-            <label for="selector-equipo">Escribe el ID del Equipo (Sofascore):</label>
+            <label for="selector-equipo">ID Equipo:</label>
             <input type="number" id="selector-equipo" value="4820">
-            <button onclick="forzarRaspadoEnLaNube()">Cargar Datos</button>
+            
+            <button onclick="forzarRaspadoEnLaNube()" style="background-color: #dc2626;">⚡ Despertar Robot</button>
+            
+            <button onclick="cambiarEquipo()" style="background-color: #16a34a;">🔄 Ver / Refrescar Tabla</button>
         </section>
-       
+
         <section class="tabla-contenedor">
             <table id="tabla-partidos">
                 <thead>
@@ -30,10 +33,9 @@
                 <tbody id="cuerpo-tabla">
                     </tbody>
             </table>
-            <div id="mensaje-error" class="error hidden">No se encontraron datos para este ID. Ejecuta la Action con este ID primero desde la pestaña Actions.</div>
+            <div id="mensaje-error" class="error hidden"></div>
         </section>
     </main>
-
     <footer>
         <p>&copy; 2026 Dashboard Estadístico Deportivo</p>
     </footer>
