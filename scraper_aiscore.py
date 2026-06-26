@@ -62,74 +62,61 @@ def extraer_y_guardar_sofascore(id_equipo):
             page.mouse.wheel(0, 2500)
             page.wait_for_timeout(2500)
 
-        print("Esperando carga final...")
+        print("Esperando que cargue Sofascore...")
 
-        page.wait_for_timeout(8000)
+        page.wait_for_timeout(15000)
+
+        page.wait_for_load_state("networkidle")
 
         page.screenshot(path="debug.png")
 
-        with open(
-            "debug.html",
-            "w",
-            encoding="utf-8"
-        ) as f:
-            f.write(page.content())
+        page.content()
 
-        print("Capturas guardadas")
+        datos_partidos = page.evaluate("""
+        () => {
 
-        print("URL:", page.url)
+            const resultados = [];
 
-        try:
-            print("Título:", page.title())
-        except:
-            pass
+            const enlaces =
+                Array.from(
+                    document.querySelectorAll("a[href]")
+                );
 
-        datos = page.evaluate("""
-() => {
+            enlaces.forEach(a => {
 
-const resultados=[];
+                const href = a.href || "";
 
-document.querySelectorAll("a").forEach(a=>{
+                if (
+                    href.includes("/match/")
+                ) {
 
-const url=a.href||"";
+                    resultados.push({
+                        info:
+                            (
+                                a.innerText ||
+                                a.textContent ||
+                                ""
+                            )
+                            .trim(),
 
-if(
-url.includes("/match/")
-||
-url.includes("/evento/")
-){
+                        url: href
+                    });
 
-const texto=
-(
-a.innerText
-||
-a.textContent
-||
-"Partido"
-)
-.replace(/\\n/g," ")
-.trim();
+                }
 
-resultados.push({
-info:texto,
-url:url
-});
+            });
 
-}
+            return resultados;
 
-});
+        }
+        """)
 
-return resultados;
-
-}
-""")
-
-        print("Links encontrados:", len(datos))
+        print("Extraídos:", len(datos_partidos))
 
         unicos = []
         vistas = set()
 
-        for x in datos:
+        for x in datos_partidos:
 
             if x["url"] not in vistas:
 
@@ -149,20 +136,39 @@ return resultados;
             f"{id_equipo}.json"
         )
 
-        with open(
-            archivo,
-            "w",
-            encoding="utf-8"
-        ) as f:
+        if resultados:
+            with open(
+                archivo,
+                "w",
+                encoding="utf-8"
+            ) as f:
 
-            json.dump(
-                resultados,
-                f,
-                indent=4,
-                ensure_ascii=False
-            )
+                json.dump(
+                    resultados,
+                    f,
+                    indent=4,
+                    ensure_ascii=False
+                )
 
-        print("JSON creado:", archivo)
+            print("JSON creado:", archivo)
+
+        else:
+            archivo_json = f"{id_equipo}.json"
+
+            with open(
+                archivo_json,
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                json.dump(
+                    datos_partidos,
+                    f,
+                    ensure_ascii=False,
+                    indent=4
+                )
+
+            print("JSON vacío generado")
 
         context.close()
         browser.close()
