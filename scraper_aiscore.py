@@ -57,27 +57,26 @@ def extraer_y_guardar_sofascore(id_equipo):
         print("Extrayendo partidos...")
         print("Titulo:", page.title())
 
-        # AQUÍ ESTÁ LA MAGIA MEJORADA PARA EXTRAER TEXTO REBELDE
+        # AQUÍ ESTÁ LA CORRECCIÓN: Buscamos globalmente de nuevo
         datos = page.evaluate("""
         () => {
-            const resultados=[];
-            const root = document.querySelector("main") || document.querySelector("#__next") || document.body;
-
-            if(!root) return [];
-
-            const enlaces = Array.from(root.querySelectorAll("a"));
+            const resultados = [];
+            
+            // Volvemos a la búsqueda global infalible
+            const enlaces = Array.from(document.querySelectorAll("a[href]"));
 
             enlaces.forEach(a => {
-                const url = a.href;
+                const url = a.href || "";
 
-                if (url && (url.includes("/evento/") || url.includes("/match/")) && !url.includes("/campeonato/")) {
+                // Atrapamos "/match/" o "/partido/" por si cambian el idioma
+                if (url.includes("/match/") || url.includes("/partido/")) {
                     
-                    // textContent extrae texto oculto, replace limpia espacios dobles y saltos de línea
+                    // Extraemos texto profundo y limpiamos saltos de línea
                     let texto = a.textContent || a.innerText || "";
                     texto = texto.replace(/\\s+/g, " ").trim();
                     
                     if (texto === "") {
-                        texto = "Detalles del partido (Cargando...)";
+                        texto = "⚽ Detalles del encuentro";
                     }
 
                     resultados.push({
