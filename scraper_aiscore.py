@@ -8,98 +8,133 @@ ID_EQUIPO = int(sys.argv[1]) if len(sys.argv) > 1 else 4820
 
 def extraer_y_guardar_sofascore(id_equipo):
 
-    print(f"Iniciando raspado para ID {id_equipo}")
+    print(f"Iniciando raspado: {id_equipo}")
 
     with sync_playwright() as p:
 
-        browser = p.chromium.launch(
+        perfil = "/tmp/playwright-profile"
+
+        context = p.chromium.launch_persistent_context(
+            perfil,
+
             headless=True,
+
+            viewport={
+                "width": 1280,
+                "height": 720
+            },
+
+            user_agent=(
+                "Mozilla/5.0 "
+                "(Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 "
+                "(KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+
+            locale="es-ES",
+
             args=[
+                "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
-                "--disable-blink-features=AutomationControlled"
+                "--disable-dev-shm-usage"
             ]
         )
 
-        context = browser.new_context(
-            viewport={
-                "width": 1366,
-                "height": 768
-            },
-            locale="es-ES",
-            timezone_id="America/Bogota",
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/137.0.0.0 Safari/537.36"
-            )
+        page = (
+            context.pages[0]
+            if context.pages
+            else context.new_page()
         )
 
-        page = context.new_page()
-
         page.set_extra_http_headers({
-            "Accept-Language": "es-ES,es;q=0.9",
-            "Referer": "https://www.google.com/"
+            "Accept-Language": "es-ES,es;q=0.9"
         })
 
         url = (
-            f"https://www.sofascore.com/es/equipo/"
-            f"futbol/colombia/{id_equipo}"
+            f"https://www.sofascore.com/"
+            f"es/equipo/futbol/"
+            f"colombia/{id_equipo}"
         )
 
         print("Abriendo:", url)
 
         page.goto(
             url,
-            wait_until="domcontentloaded",
+            wait_until="commit",
             timeout=90000
         )
 
-        page.wait_for_timeout(10000)
+        page.wait_for_timeout(12000)
 
-        print("Haciendo scroll...")
+        page.evaluate(
+            "window.scrollBy(0,500)"
+        )
 
-        for _ in range(6):
-            page.mouse.wheel(0, 2500)
-            page.wait_for_timeout(2500)
+        page.wait_for_timeout(3000)
 
-        print("Esperando que cargue Sofascore...")
+        page.screenshot(
+            path="debug.png"
+        )
 
-        page.wait_for_timeout(15000)
+        with open(
+            "debug.html",
+            "w",
+            encoding="utf-8"
+        ) as f:
 
-        page.wait_for_load_state("networkidle")
+            f.write(
+                page.content()
+            )
 
-        page.screenshot(path="debug.png")
+        print("Extrayendo partidos...")
 
-        page.content()
-
-        datos_partidos = page.evaluate("""
+        datos = page.evaluate("""
         () => {
 
-            const resultados = [];
+            const resultados=[];
 
-            const enlaces =
+            const root=
+                document.querySelector("main")
+                ||
+                document.querySelector("#__next");
+
+            if(!root)
+                return [];
+
+            const enlaces=
                 Array.from(
-                    document.querySelectorAll("a[href]")
+                    root.querySelectorAll("a")
                 );
 
-            enlaces.forEach(a => {
+            enlaces.forEach(a=>{
 
-                const href = a.href || "";
+                const url=a.href;
 
-                if (
-                    href.includes("/match/")
-                ) {
+                if(
+                    url
+                    &&
+                    (
+                        url.includes("/evento/")
+                        ||
+                        url.includes("/match/")
+                    )
+                    &&
+                    !url.includes("/campeonato/")
+                ){
+
+                    const texto=
+                        (
+                            a.innerText
+                            ||
+                            "Partido"
+                        )
+                        .replace(/\\n/g," ")
+                        .trim();
 
                     resultados.push({
-                        info:
-                            (
-                                a.innerText ||
-                                a.textContent ||
-                                ""
-                            )
-                            .trim(),
-
-                        url: href
+                        info:texto,
+                        url:url
                     });
 
                 }
@@ -111,68 +146,46 @@ def extraer_y_guardar_sofascore(id_equipo):
         }
         """)
 
-        print("Extraídos:", len(datos_partidos))
+        print("Encontrados:", len(datos))
 
-        unicos = []
-        vistas = set()
+        vistos=set()
+        finales=[]
 
-        for x in datos_partidos:
+        for x in datos:
 
-            if x["url"] not in vistas:
+            if x["url"] not in vistos:
 
-                vistas.add(x["url"])
-                unicos.append(x)
-
-        resultados = unicos[:15]
-
-        print("Únicos:", len(resultados))
-
-        ruta = os.path.dirname(
-            os.path.abspath(__file__)
-        )
-
-        archivo = os.path.join(
-            ruta,
-            f"{id_equipo}.json"
-        )
-
-        if resultados:
-            with open(
-                archivo,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-                json.dump(
-                    resultados,
-                    f,
-                    indent=4,
-                    ensure_ascii=False
+                vistos.add(
+                    x["url"]
                 )
 
-            print("JSON creado:", archivo)
-
-        else:
-            archivo_json = f"{id_equipo}.json"
-
-            with open(
-                archivo_json,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-                json.dump(
-                    datos_partidos,
-                    f,
-                    ensure_ascii=False,
-                    indent=4
+                finales.append(
+                    x
                 )
 
-            print("JSON vacío generado")
+        finales=finales[:10]
+
+        archivo=f"{id_equipo}.json"
+
+        with open(
+            archivo,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                finales,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+
+        print("Guardado:", archivo)
 
         context.close()
-        browser.close()
 
 
-if __name__ == "__main__":
-    extraer_y_guardar_sofascore(ID_EQUIPO)
+if __name__=="__main__":
+    extraer_y_guardar_sofascore(
+        ID_EQUIPO
+    )
