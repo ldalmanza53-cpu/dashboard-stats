@@ -34,6 +34,13 @@ jobs:
       run: |
         python scraper_aiscore.py "${{ github.event.inputs.id_equipo }}"
 
+    - name: Subir captura de depuracion
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-captura
+        path: debug.png
+      
+
     # ← NUEVO (para depuración)
     - name: Verificar si se generó el JSON
       run: |
