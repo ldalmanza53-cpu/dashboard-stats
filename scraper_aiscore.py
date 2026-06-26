@@ -13,30 +13,70 @@ def extraer_y_guardar_sofascore(id_equipo):
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         url_perfil = f"https://www.sofascore.com/es/equipo/futbol/colombia/{id_equipo}"
-        page.goto(url_perfil, wait_until="commit")
+        page.goto(url_perfil, wait_until="networkidle")
 
-        page.wait_for_timeout(12000)
-        page.evaluate("window.scrollBy(0, 500)")
-        page.wait_for_timeout(2000)
+        print("Esperando carga...")
 
-        datos_partidos = page.evaluate("""() => {
-            const resultados = [];
-            const contenedorPrincipal = document.querySelector('main') || document.querySelector('#__next');
-            if (contenedorPrincipal) {
-                const enlaces = Array.from(contenedorPrincipal.querySelectorAll('a'));
-                enlaces.forEach(a => {
-                    const url = a.href;
-                    if (url && (url.includes('/evento/') || url.includes('/match/')) && !url.includes('/campeonato/')) {
-                        let esGlobal = a.closest('header') || a.closest('aside') || a.closest('[class*="Header"]') || a.closest('[class*="Sidebar"]');
-                        if (!esGlobal) {
-                            let texto = a.innerText ? a.innerText.replace(/\\n/g, ' ').trim() : "Partido";
-                            resultados.push({ info: texto, url: url });
-                        }
-                    }
-                });
+        page.wait_for_timeout(8000)
+
+        page.screenshot(path="debug.png")
+
+        print("URL actual:", page.url)
+        print("Título:", page.title())
+
+        page.wait_for_selector("body", timeout=15000)
+        print("Extrayendo partidos...")
+
+datos_partidos = page.evaluate("""() => {
+    const resultados = [];
+
+    const contenedorPrincipal =
+        document.querySelector('main') ||
+        document.querySelector('#__next');
+
+    if (contenedorPrincipal) {
+        const enlaces =
+            Array.from(contenedorPrincipal.querySelectorAll('a'));
+
+        enlaces.forEach(a => {
+            const url = a.href;
+
+            if (
+                url &&
+                (
+                    url.includes('/evento/') ||
+                    url.includes('/match/')
+                ) &&
+                !url.includes('/campeonato/')
+            ) {
+
+                let esGlobal =
+                    a.closest('header') ||
+                    a.closest('aside') ||
+                    a.closest('[class*="Header"]') ||
+                    a.closest('[class*="Sidebar"]');
+
+                if (!esGlobal) {
+                    let texto =
+                        a.innerText
+                        ? a.innerText.replace(/\\n/g,' ').trim()
+                        : "Partido";
+
+                    resultados.push({
+                        info: texto,
+                        url: url
+                    });
+                }
             }
-            return resultados;
-        }""")
+        });
+    }
+
+    return resultados;
+
+}""")
+
+print("Encontrados:", len(datos_partidos))
+print(datos_partidos[:3])
 
         partidos_unicos = []
         urls_vistas = set()
