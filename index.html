@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Métricas Deportivas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Historial de Partidos & Análisis Cuantitativo</h1>
+        <p>Monitoreo dinámico de datos para mercados de valor esperado (+EV)</p>
+    </header>
+
+    <main class="contenedor">
+        <section class="control-panel">
+            <label for="selector-equipo">Escribe el ID del Equipo (Sofascore):</label>
+            <input type="number" id="selector-equipo" value="4820">
+            <button onclick="cambiarEquipo()">Cargar Datos</button>
+        </section>
+
+        <section class="tabla-contenedor">
+            <table id="tabla-partidos">
+                <thead>
+                    <tr>
+                        <th>Detalles del Encuentro (Fecha / Equipos / Estado / Marcador)</th>
+                        <th style="width: 250px;">Acción de Análisis</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla">
+                    </tbody>
+            </table>
+            <div id="mensaje-error" class="error hidden">No se encontraron datos para este ID. Ejecuta la Action con este ID primero desde la pestaña Actions.</div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Dashboard Estadístico Deportivo</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
