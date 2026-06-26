@@ -34,10 +34,15 @@ jobs:
 
     - name: Guardar cambios y actualizar la web automaticamente
       env:
-        # ESTA JUGADA LE DA EL PERMISO EXPLICITO AL SERVIDOR PARA HACER PUSH
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add .
-        git diff --quiet && git diff --staged --quiet || (git commit -m "update: datos del equipo ${{ github.event.inputs.id_equipo }}" && git push)
+        git add *.json
+        # Solo hacemos commit si hay cambios reales
+        if git diff --staged --quiet; then
+          echo "No hay cambios nuevos"
+        else
+          git commit -m "update: datos del equipo ${{ github.event.inputs.id_equipo }}"
+          git push
+        fi
